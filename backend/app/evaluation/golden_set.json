@@ -1,0 +1,6 @@
+[
+  {
+    "question": "What is RAG?",
+    "expected_answer": "Retrieval-Augmented Generation"
+  }
+]
