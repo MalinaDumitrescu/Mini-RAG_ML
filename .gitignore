@@ -125,3 +125,14 @@ venv.bak/
 finetuned_model/
 models/
 data/
+artifacts/
+
+# Frontend / Node.js
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
