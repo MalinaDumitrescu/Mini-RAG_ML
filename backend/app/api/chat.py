@@ -7,17 +7,24 @@ import logging
 router = APIRouter()
 logger = logging.getLogger("api.chat")
 
-# Initialize pipeline once (lazy loading inside pipeline handles heavy models)
 pipeline = RAGPipeline(INDEX_DIR)
 
 @router.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
     try:
-        # Run the full RAG pipeline
         result = pipeline.answer(request.message)
-        
-        # Extract sources text
-        sources = [item["text"] for item in result.get("retrieved", [])]
+
+        # richer sources
+        sources = [
+            {
+                "chunk_id": item["chunk_id"],
+                "faiss_score": item["faiss_score"],
+                "score": item["score"],
+                "metadata": item.get("metadata", {}),
+                "text_preview": (item["text"][:300] + "...") if len(item["text"]) > 300 else item["text"],
+            }
+            for item in result.get("retrieved", [])
+        ]
 
         return ChatResponse(
             answer=result["answer"],

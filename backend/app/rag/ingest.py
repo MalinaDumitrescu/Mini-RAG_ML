@@ -15,55 +15,51 @@ logger = logging.getLogger("rag.ingest")
 _WHITESPACE_RE = re.compile(r"[ \t]+")
 _MULTI_NEWLINE_RE = re.compile(r"\n{3,}")
 
+
 def _clean_text(text: str) -> str:
-    # Normalize newlines
     text = text.replace("\r\n", "\n").replace("\r", "\n")
-    # Collapse repeated spaces/tabs
     text = _WHITESPACE_RE.sub(" ", text)
-    # Collapse too many newlines
     text = _MULTI_NEWLINE_RE.sub("\n\n", text)
-    # Strip edges
     return text.strip()
 
-def read_pdf(pdf_path: Path, max_pages: Optional[int] = None) -> Document:
+
+def read_pdf_pages(pdf_path: Path, max_pages: Optional[int] = None) -> List[Document]:
     """
-    Extract text from a single PDF.
-    max_pages: if set, only reads the first N pages (useful for quick tests)
+    Extract text per page -> returns one Document per page.
+    This enables page-level traceability in chunk metadata.
     """
-    logger.info("Reading PDF: %s", pdf_path)
+    logger.info("Reading PDF pages: %s", pdf_path)
     reader = PdfReader(str(pdf_path))
 
-    pages_text: List[str] = []
     n_pages = len(reader.pages)
     limit = min(n_pages, max_pages) if max_pages else n_pages
+
+    docs: List[Document] = []
+    base_doc_id = pdf_path.stem
 
     for i in range(limit):
         page = reader.pages[i]
         page_text = page.extract_text() or ""
         page_text = _clean_text(page_text)
-        if page_text:
-            pages_text.append(page_text)
 
-    full_text = "\n\n".join(pages_text).strip()
-    doc_id = pdf_path.stem
+        if not page_text:
+            continue
 
-    metadata = {
-        "source_type": "pdf",
-        "source_path": str(pdf_path),
-        "filename": pdf_path.name,
-        "num_pages_total": n_pages,
-        "num_pages_read": limit,
-    }
+        doc_id = f"{base_doc_id}::p{i+1:04d}"
+        metadata = {
+            "source_type": "pdf",
+            "source_path": str(pdf_path),
+            "filename": pdf_path.name,
+            "num_pages_total": n_pages,
+            "page_number": i + 1,
+        }
+        docs.append(Document(doc_id=doc_id, text=page_text, metadata=metadata))
 
-    logger.info("Extracted %d chars from %s (%d/%d pages).",
-                len(full_text), pdf_path.name, limit, n_pages)
+    logger.info("Extracted %d page-docs from %s (%d/%d pages).", len(docs), pdf_path.name, limit, n_pages)
+    return docs
 
-    return Document(doc_id=doc_id, text=full_text, metadata=metadata)
 
 def ingest_directory(raw_dir: Path, glob_pattern: str = "*.pdf", max_files: Optional[int] = None) -> List[Document]:
-    """
-    Load all PDFs from a folder.
-    """
     if not raw_dir.exists():
         raise FileNotFoundError(f"Raw directory not found: {raw_dir}")
 
@@ -76,9 +72,9 @@ def ingest_directory(raw_dir: Path, glob_pattern: str = "*.pdf", max_files: Opti
     docs: List[Document] = []
     for p in pdf_paths:
         try:
-            docs.append(read_pdf(p))
+            docs.extend(read_pdf_pages(p))
         except Exception as e:
             logger.exception("Failed to read %s: %s", p, e)
 
-    logger.info("Ingestion done. Loaded %d documents.", len(docs))
+    logger.info("Ingestion done. Loaded %d documents (page-level).", len(docs))
     return docs

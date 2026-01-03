@@ -26,7 +26,7 @@ def main() -> None:
 
         for i, h in enumerate(hits, 1):
             preview = (h.text[:240] + "...").replace("\n", " ")
-            print(f"{i}) score={h.score:.4f}  id={h.chunk_id}")
+            print(f"{i}) score={h.score:.4f}  faiss={h.faiss_score:.4f}  id={h.chunk_id}")
             print("   ", preview)
 
 
