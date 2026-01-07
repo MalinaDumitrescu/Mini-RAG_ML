@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import { Menu, Sun, Moon } from 'lucide-react';
-import { Sidebar } from './components/Sidebar';
-import { Message } from './components/Message';
-import { ChatInput } from './components/ChatInput';
+import { useState, useEffect, useRef } from "react";
+import { Menu, Sun, Moon } from "lucide-react";
+import { Sidebar } from "./components/Sidebar";
+import { Message } from "./components/Message";
+import { ChatInput } from "./components/ChatInput";
 
 interface MessageType {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
@@ -22,25 +22,23 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([
     {
-      id: '1',
-      title: 'New conversation',
-      date: 'Today',
+      id: "1",
+      title: "New conversation",
+      date: "Today",
       messages: [],
-    }
+    },
   ]);
-  const [activeConversationId, setActiveConversationId] = useState('1');
+  const [activeConversationId, setActiveConversationId] = useState("1");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   // USE LOCAL IMAGE FROM PUBLIC FOLDER
   const botAvatarUrl = "/bot-avatar.png";
 
-  const activeConversation = conversations.find(
-    (c) => c.id === activeConversationId
-  );
+  const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -50,7 +48,7 @@ export default function App() {
   const handleSendMessage = async (content: string) => {
     const newUserMessage: MessageType = {
       id: Date.now().toString(),
-      role: 'user',
+      role: "user",
       content,
     };
 
@@ -62,7 +60,7 @@ export default function App() {
               messages: [...conv.messages, newUserMessage],
               title:
                 conv.messages.length === 0
-                  ? content.slice(0, 30) + (content.length > 30 ? '...' : '')
+                  ? content.slice(0, 30) + (content.length > 30 ? "..." : "")
                   : conv.title,
             }
           : conv
@@ -72,44 +70,59 @@ export default function App() {
     setIsTyping(true);
 
     try {
-      // Call the backend API
-      const response = await fetch('/api/v1/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+      // Call the backend API (via Vite proxy)
+      const response = await fetch("/api/v1/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           message: content,
-          history: [] // You can implement history passing if your backend supports it
-        })
+          history: [], // You can implement history passing if your backend supports it
+        }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      const data = await response.json();
-      
+
+      const data: any = await response.json();
+
       // Construct the assistant's response
-      let assistantContent = data.answer;
-      
+      let assistantContent: string = String(data.answer ?? "");
+
       // Append sources if available
-      if (data.sources && data.sources.length > 0) {
+      // Backend may return "sources" (custom) or "retrieved" (pipeline output). Handle both.
+      const rawSources = data.sources ?? data.retrieved ?? [];
+
+      if (Array.isArray(rawSources) && rawSources.length > 0) {
         assistantContent += "\n\n---\n**Sources:**\n";
-        data.sources.forEach((source: string, index: number) => {
-           // Truncate source text for display
-           const preview = source.slice(0, 300).replace(/\n/g, " ") + "...";
-           assistantContent += `${index + 1}. ${preview}\n`;
+
+        rawSources.forEach((src: any, index: number) => {
+          // src can be a string or an object
+          const text =
+            typeof src === "string" ? src : String(src.text ?? src.content ?? "");
+
+          const cid =
+            typeof src === "string"
+              ? "unknown"
+              : String(src.chunk_id ?? src.id ?? `source_${index + 1}`);
+
+          const preview =
+            text.slice(0, 300).replace(/\n/g, " ") + (text.length > 300 ? "..." : "");
+
+          assistantContent += `${index + 1}. [${cid}] ${preview}\n`;
         });
       }
-      
-      // Append judge result if available
-      if (data.judge_result) {
-        const verdict = data.judge_result.verdict || "unknown";
-        assistantContent += `\n\n---\n**Judge Verdict:** ${verdict.toUpperCase()}`;
+
+      // Append judge result if available (your backend might use "judge" not "judge_result")
+      const jr = data.judge_result ?? data.judge ?? null;
+      if (jr) {
+        const verdict = String(jr.verdict ?? "unknown").toUpperCase();
+        assistantContent += `\n\n---\n**Judge Verdict:** ${verdict}`;
       }
 
       const assistantMessage: MessageType = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
+        role: "assistant",
         content: assistantContent,
       };
 
@@ -121,13 +134,14 @@ export default function App() {
         )
       );
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       const errorMessage: MessageType = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: "Sorry, I encountered an error connecting to the server. Please make sure the backend is running.",
+        role: "assistant",
+        content:
+          "Sorry, I encountered an error connecting to the server. Please make sure the backend is running.",
       };
-      
+
       setConversations((prev) =>
         prev.map((conv) =>
           conv.id === activeConversationId
@@ -143,8 +157,8 @@ export default function App() {
   const handleNewChat = () => {
     const newConversation: Conversation = {
       id: Date.now().toString(),
-      title: 'New conversation',
-      date: 'Today',
+      title: "New conversation",
+      date: "Today",
       messages: [],
     };
     setConversations((prev) => [newConversation, ...prev]);
@@ -158,11 +172,7 @@ export default function App() {
   };
 
   return (
-    <div
-      className={`h-screen flex ${
-        isDark ? 'bg-[#343541]' : 'bg-white'
-      } transition-colors`}
-    >
+    <div className={`h-screen flex ${isDark ? "bg-[#343541]" : "bg-white"} transition-colors`}>
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -176,36 +186,26 @@ export default function App() {
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <header
           className={`flex items-center justify-between px-4 py-3 border-b ${
-            isDark
-              ? 'border-white/10 bg-[#343541]'
-              : 'border-gray-200 bg-white'
+            isDark ? "border-white/10 bg-[#343541]" : "border-gray-200 bg-white"
           }`}
         >
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className={`lg:hidden p-2 rounded-lg transition-colors ${
-                isDark
-                  ? 'hover:bg-white/10 text-white'
-                  : 'hover:bg-gray-100 text-gray-900'
+                isDark ? "hover:bg-white/10 text-white" : "hover:bg-gray-100 text-gray-900"
               }`}
             >
               <Menu size={20} />
             </button>
-            <h1
-              className={`font-semibold ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}
-            >
+            <h1 className={`font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
               ChudGTP
             </h1>
           </div>
           <button
             onClick={() => setIsDark(!isDark)}
             className={`p-2 rounded-lg transition-colors ${
-              isDark
-                ? 'hover:bg-white/10 text-white'
-                : 'hover:bg-gray-100 text-gray-900'
+              isDark ? "hover:bg-white/10 text-white" : "hover:bg-gray-100 text-gray-900"
             }`}
             aria-label="Toggle theme"
           >
@@ -218,22 +218,16 @@ export default function App() {
             <div className="h-full flex items-center justify-center">
               <div className="text-center px-4">
                 <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                  <img 
-                    src={botAvatarUrl} 
-                    alt="ChudGTP" 
+                  <img
+                    src={botAvatarUrl}
+                    alt="ChudGTP"
                     className="w-full h-full rounded-full object-cover shadow-lg"
                   />
                 </div>
-                <h2
-                  className={`text-2xl font-semibold mb-2 ${
-                    isDark ? 'text-white' : 'text-gray-900'
-                  }`}
-                >
+                <h2 className={`text-2xl font-semibold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>
                   How can I help you today?
                 </h2>
-                <p
-                  className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}
-                >
+                <p className={`${isDark ? "text-gray-400" : "text-gray-600"}`}>
                   (Yes, it's ChudGTP not ChatGPT)
                 </p>
               </div>
@@ -248,17 +242,14 @@ export default function App() {
                   isDark={isDark}
                 />
               ))}
+
               {isTyping && (
-                <div
-                  className={`w-full ${
-                    isDark ? 'bg-[#444654]' : 'bg-white'
-                  }`}
-                >
+                <div className={`w-full ${isDark ? "bg-[#444654]" : "bg-white"}`}>
                   <div className="max-w-3xl mx-auto px-4 py-6 flex gap-6">
                     <div className="flex-shrink-0">
-                      <img 
-                        src={botAvatarUrl} 
-                        alt="ChudGTP" 
+                      <img
+                        src={botAvatarUrl}
+                        alt="ChudGTP"
                         className="w-8 h-8 rounded-full object-cover"
                       />
                     </div>
@@ -266,37 +257,34 @@ export default function App() {
                       <div className="flex gap-1 mt-2">
                         <div
                           className={`w-2 h-2 rounded-full animate-bounce ${
-                            isDark ? 'bg-gray-400' : 'bg-gray-600'
+                            isDark ? "bg-gray-400" : "bg-gray-600"
                           }`}
-                          style={{ animationDelay: '0ms' }}
+                          style={{ animationDelay: "0ms" }}
                         />
                         <div
                           className={`w-2 h-2 rounded-full animate-bounce ${
-                            isDark ? 'bg-gray-400' : 'bg-gray-600'
+                            isDark ? "bg-gray-400" : "bg-gray-600"
                           }`}
-                          style={{ animationDelay: '150ms' }}
+                          style={{ animationDelay: "150ms" }}
                         />
                         <div
                           className={`w-2 h-2 rounded-full animate-bounce ${
-                            isDark ? 'bg-gray-400' : 'bg-gray-600'
+                            isDark ? "bg-gray-400" : "bg-gray-600"
                           }`}
-                          style={{ animationDelay: '300ms' }}
+                          style={{ animationDelay: "300ms" }}
                         />
                       </div>
                     </div>
                   </div>
                 </div>
               )}
+
               <div ref={messagesEndRef} />
             </div>
           )}
         </div>
 
-        <ChatInput
-          onSend={handleSendMessage}
-          isDark={isDark}
-          disabled={isTyping}
-        />
+        <ChatInput onSend={handleSendMessage} isDark={isDark} disabled={isTyping} />
       </div>
     </div>
   );
