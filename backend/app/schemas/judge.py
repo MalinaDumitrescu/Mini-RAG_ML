@@ -1,4 +1,3 @@
-# backend/app/schemas/judge.py
 from __future__ import annotations
 from typing import Any, Dict, List, Literal
 from pydantic import BaseModel

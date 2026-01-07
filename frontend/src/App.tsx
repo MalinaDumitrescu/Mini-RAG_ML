@@ -32,7 +32,6 @@ export default function App() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // USE LOCAL IMAGE FROM PUBLIC FOLDER
   const botAvatarUrl = "/bot-avatar.png";
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
@@ -70,13 +69,12 @@ export default function App() {
     setIsTyping(true);
 
     try {
-      // Call the backend API (via Vite proxy)
       const response = await fetch("/api/v1/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: content,
-          history: [], // You can implement history passing if your backend supports it
+          history: [],
         }),
       });
 
@@ -86,18 +84,15 @@ export default function App() {
 
       const data: any = await response.json();
 
-      // Construct the assistant's response
       let assistantContent: string = String(data.answer ?? "");
 
-      // Append sources if available
-      // Backend may return "sources" (custom) or "retrieved" (pipeline output). Handle both.
+
       const rawSources = data.sources ?? data.retrieved ?? [];
 
       if (Array.isArray(rawSources) && rawSources.length > 0) {
         assistantContent += "\n\n---\n**Sources:**\n";
 
         rawSources.forEach((src: any, index: number) => {
-          // src can be a string or an object
           const text =
             typeof src === "string" ? src : String(src.text ?? src.content ?? "");
 
@@ -113,7 +108,6 @@ export default function App() {
         });
       }
 
-      // Append judge result if available (your backend might use "judge" not "judge_result")
       const jr = data.judge_result ?? data.judge ?? null;
       if (jr) {
         const verdict = String(jr.verdict ?? "unknown").toUpperCase();

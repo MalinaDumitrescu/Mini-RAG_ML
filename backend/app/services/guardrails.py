@@ -1,4 +1,3 @@
-# backend/app/services/guardrails.py
 from __future__ import annotations
 
 import logging
@@ -13,16 +12,12 @@ logger = logging.getLogger("rag.guardrails")
 class GuardrailsConfig:
     max_question_chars: int = 2000
 
-    # ML-ish topic hints (still useful as a cheap first pass)
     topic_keywords: List[str] = None
 
-    # Unsafe keywords (demo-level, but stronger matching)
     unsafe_keywords: List[str] = None
 
-    # Prompt injection / jailbreak patterns (compiled regex)
     injection_patterns: List[Pattern] = None
 
-    # Output patterns that indicate prompt leakage / jailbreak language (compiled regex)
     output_block_patterns: List[Pattern] = None
 
     def __post_init__(self):
@@ -39,7 +34,6 @@ class GuardrailsConfig:
             ]
 
         if self.unsafe_keywords is None:
-            # Keep this simple for lab, but avoid obvious false-positives via boundaries
             self.unsafe_keywords = [
                 r"\bporn\b", r"\bxxx\b", r"\bnude\b",
                 r"\bsex\b", r"\bsexual\b",
@@ -100,7 +94,6 @@ def check_input(question: str, cfg: GuardrailsConfig | None = None) -> Dict:
     if len(q) > cfg.max_question_chars:
         return {"ok": False, "reason": "too_long", "message": "Question too long."}
 
-    # Block prompt injection attempts early
     if _matches_any_compiled(q, cfg.injection_patterns):
         logger.warning("Blocked potential prompt injection attempt.")
         return {
@@ -109,7 +102,6 @@ def check_input(question: str, cfg: GuardrailsConfig | None = None) -> Dict:
             "message": "Request blocked (prompt injection / jailbreak attempt).",
         }
 
-    # Unsafe content check (regex)
     if _matches_any_regex(q, cfg.unsafe_keywords):
         return {
             "ok": False,
@@ -117,7 +109,6 @@ def check_input(question: str, cfg: GuardrailsConfig | None = None) -> Dict:
             "message": "I can’t help with that request.",
         }
 
-    # Off-topic first-pass (cheap). DO NOT hard-block; retrieval gate will decide.
     topic_hit = _contains_any_substring(q, cfg.topic_keywords)
     if not topic_hit:
         return {
@@ -133,7 +124,6 @@ def check_output(answer: str, cfg: GuardrailsConfig | None = None) -> Dict:
     cfg = cfg or GuardrailsConfig()
     a = (answer or "").strip()
 
-    # Unsafe output check (regex)
     if _matches_any_regex(a, cfg.unsafe_keywords):
         return {
             "ok": False,
@@ -141,7 +131,6 @@ def check_output(answer: str, cfg: GuardrailsConfig | None = None) -> Dict:
             "message": "Output blocked due to unsafe content.",
         }
 
-    # Prompt leakage / jailbreak language in output
     if _matches_any_compiled(a, cfg.injection_patterns) or _matches_any_compiled(a, cfg.output_block_patterns):
         return {
             "ok": False,

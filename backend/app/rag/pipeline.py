@@ -1,4 +1,3 @@
-# backend/app/rag/pipeline.py
 from __future__ import annotations
 
 import logging
@@ -28,7 +27,6 @@ class RAGConfig:
     min_faiss_score: float = 0.35
 
     # If guardrails suspects off-topic, require stronger retrieval confidence
-    # (prevents accepting random questions even if corpus contains unrelated text)
     off_topic_faiss_score: float = 0.60
 
     # Refuse if retrieval is too weak
@@ -49,9 +47,19 @@ class RAGPipeline:
         # Lazy-loaded judge (CPU)
         self.judge: Optional[LLMJudge] = None
 
-    # ---------------------------------------------------------
-    # Helpers
-    # ---------------------------------------------------------
+    @staticmethod
+    def _extract_doc_citation(chunk_id: str) -> str:
+        """
+        Convert:
+          'ISLP_website::p0438::c000001' -> '[ISLP_website::c000001]'
+          'Book::c000123'               -> '[Book::c000123]'
+        """
+        m = re.search(r"^(.*?)(::p\d+)?::(c\d{6})$", chunk_id)
+        if not m:
+            return f"[{chunk_id}]"
+        doc = m.group(1)
+        cpart = m.group(3)
+        return f"[{doc}::{cpart}]"
 
     def _format_context(self, chunks: List[RetrievedChunk]) -> str:
         parts = []
@@ -85,6 +93,7 @@ class RAGPipeline:
     def _ensure_citations(self, answer: str, chunks: List[RetrievedChunk]) -> str:
         """
         Enforce at least one chunk citation when retrieval is OK.
+        Ensures format matches tests: [DOC::c000123] (no page segment).
         """
         if CIT_RE.search(answer):
             return answer
@@ -92,15 +101,10 @@ class RAGPipeline:
         if not chunks:
             return answer
 
-        cites = " ".join(f"[{c.chunk_id}]" for c in chunks[:2])
-        return f"{answer}\n\nSources: {cites}"
-
-    # ---------------------------------------------------------
-    # Main pipeline
-    # ---------------------------------------------------------
+        cites = " ".join(self._extract_doc_citation(c.chunk_id) for c in chunks[:2])
+        return f"{answer}\n\n{cites}"
 
     def answer(self, question: str) -> dict:
-        # 1) Guardrails — INPUT
         gr_in = check_input(question)
         if not gr_in.get("ok", False):
             return {
@@ -114,7 +118,6 @@ class RAGPipeline:
 
         maybe_off_topic = gr_in.get("warning") == "maybe_off_topic"
 
-        # 2) Retrieve
         chunks = self.retriever.retrieve(question, top_k=self.rag_cfg.top_k)
         retrieval_ok, retrieval_meta = self._retrieval_gate(chunks)
 
@@ -127,8 +130,6 @@ class RAGPipeline:
             maybe_off_topic,
         )
 
-        # ✅ Off-topic override:
-        # If the question looks off-topic, only proceed if retrieval is VERY strong
         if maybe_off_topic and float(best_faiss) < float(self.rag_cfg.off_topic_faiss_score):
             return {
                 "question": question,
@@ -159,7 +160,6 @@ class RAGPipeline:
                 },
             }
 
-        # Existing weak retrieval refusal
         if self.rag_cfg.refuse_on_weak_retrieval and not retrieval_ok:
             return {
                 "question": question,
@@ -182,7 +182,6 @@ class RAGPipeline:
                 "retrieval_gate": retrieval_meta,
             }
 
-        # 3) Generate
         context = self._format_context(chunks)
         user_text = USER_PROMPT_TEMPLATE.format(context=context, question=question)
 
@@ -191,11 +190,9 @@ class RAGPipeline:
             user_prompt=user_text,
         )
 
-        # Enforce citations when retrieval is OK
         if retrieval_ok:
             ans = self._ensure_citations(ans, chunks)
 
-        # 4) Guardrails — OUTPUT
         gr_out = check_output(ans)
         if not gr_out.get("ok", False):
             return {

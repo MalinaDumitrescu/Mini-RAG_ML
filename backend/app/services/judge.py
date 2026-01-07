@@ -1,4 +1,3 @@
-# backend/app/services/judge.py
 from __future__ import annotations
 
 import json
@@ -28,7 +27,15 @@ You must output a single valid JSON object.
 Do not output any text before or after the JSON.
 
 Rules:
-- If the answer contains claims not supported by context, verdict must be "fail".
+- If the assistant clearly refuses because the retrieved context is insufficient or off-topic,
+  and it uses wording like: "I don't know based on the provided context." (or equivalent),
+  then the verdict MUST be "pass".
+  In that case:
+  - supported_claims can be empty
+  - unsupported_claims must be empty
+  - hallucination_risk should be low
+  - groundedness should be high (because it didn't invent facts)
+- Otherwise, if the answer contains claims not supported by context, verdict must be "fail".
 - Extract key claims from the answer. Classify each as supported/unsupported.
 - Identify which chunk_ids are cited or should be cited.
 
@@ -50,6 +57,7 @@ Required JSON structure:
   "unsafe_or_policy": []
 }
 """
+
 
 
 def _extract_json_object(text: str) -> Optional[str]:

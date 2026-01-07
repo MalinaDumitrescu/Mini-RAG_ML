@@ -1,4 +1,3 @@
-# backend/app/tests/test_generator_loads_with_lora.py
 from backend.app.rag.llm import GeneratorLLM, LLMConfig
 
 def test_generator_initializes():

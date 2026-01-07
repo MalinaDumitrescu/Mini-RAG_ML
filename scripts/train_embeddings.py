@@ -1,4 +1,3 @@
-# scripts/train_embeddings.py
 from __future__ import annotations
 
 import json
@@ -30,7 +29,6 @@ def train_embeddings() -> None:
 
     set_seed(42)
 
-    # Ensure NLTK data is available
     try:
         nltk.data.find("tokenizers/punkt_tab")
     except LookupError:
@@ -43,7 +41,6 @@ def train_embeddings() -> None:
     epochs = 1
     learning_rate = 1e-5
 
-    # IMPORTANT: Save where runtime expects it (FINETUNED_DIR)
     output_path = FINETUNED_DIR
 
     chunks_path = CORPUS_DIR / "chunks.jsonl"

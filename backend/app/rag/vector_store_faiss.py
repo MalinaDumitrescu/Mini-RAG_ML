@@ -22,7 +22,6 @@ class FaissStore:
 def _ensure_float32(x: np.ndarray) -> np.ndarray:
     if x.dtype != np.float32:
         x = x.astype(np.float32, copy=False)
-    # FAISS likes contiguous arrays
     if not x.flags["C_CONTIGUOUS"]:
         x = np.ascontiguousarray(x)
     return x
@@ -87,7 +86,6 @@ def load_faiss(index_path: Path, docstore_path: Path) -> FaissStore:
     with docstore_path.open("r", encoding="utf-8") as f:
         docstore = json.load(f)
 
-    # Helpful validation for grading/debugging
     if not isinstance(index, faiss.Index):
         raise TypeError("Loaded object is not a FAISS Index.")
 

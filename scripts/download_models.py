@@ -1,4 +1,3 @@
-# scripts/download_models.py
 from __future__ import annotations
 
 import logging
@@ -20,7 +19,6 @@ def download_models() -> None:
     setup_logging(LOGS_DIR / "download_models.log", level=logging.INFO)
     logger = logging.getLogger("download_models")
 
-    # ✅ Match your actual runtime setup
     gen_model = "Qwen/Qwen2.5-0.5B-Instruct"
     judge_model = "Qwen/Qwen2.5-0.5B-Instruct"
     emb_model = "sentence-transformers/all-MiniLM-L6-v2"
@@ -45,10 +43,8 @@ def download_models() -> None:
     _ = SentenceTransformer(emb_model, device="cpu")
     logger.info("Embeddings cached.")
 
-    # -------- Finetuned Embeddings (optional) --------
     if FINETUNED_DIR.exists() and any(FINETUNED_DIR.iterdir()):
         logger.info("Found finetuned embeddings directory at %s", FINETUNED_DIR)
-        # Optional: verify it loads
         try:
             _ = SentenceTransformer(str(FINETUNED_DIR), device="cpu")
             logger.info("Finetuned embeddings load OK.")
@@ -57,7 +53,6 @@ def download_models() -> None:
     else:
         logger.info("No finetuned embeddings found yet at %s (ok).", FINETUNED_DIR)
 
-    # -------- LoRA adapter (optional) --------
     lora_dir = MODELS_DIR / "llm_lora_qwen05b"
     adapter_cfg = lora_dir / "adapter_config.json"
 

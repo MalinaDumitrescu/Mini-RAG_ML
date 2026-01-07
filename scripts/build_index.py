@@ -1,4 +1,3 @@
-# scripts/build_index.py
 from __future__ import annotations
 
 import json
@@ -47,7 +46,6 @@ def main() -> None:
     store = FaissStore(index=index, docstore=docstore)
     save_faiss(store, INDEX_DIR / "faiss.index", INDEX_DIR / "docstore.json")
 
-    # NEW: meta for grading/debugging
     meta = {
         "created_at": datetime.utcnow().isoformat() + "Z",
         "num_chunks": len(chunks),

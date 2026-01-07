@@ -1,4 +1,3 @@
-# backend/app/tests/test_guardrails_output_unsafe.py
 from backend.app.services.guardrails import check_output
 
 def test_guardrails_blocks_unsafe_output():

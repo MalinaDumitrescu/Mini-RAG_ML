@@ -18,10 +18,8 @@ def main() -> None:
         print(f"No PDFs found in: {RAW_DIR}")
         return
 
-    # Chunking (with overlap)
     chunks = chunk_corpus(docs, chunk_words=400, overlap_words=80)
 
-    # Save chunks JSONL (this is what we will embed + index later)
     out_path = CORPUS_DIR / "chunks.jsonl"
     with out_path.open("w", encoding="utf-8") as f:
         for c in chunks:

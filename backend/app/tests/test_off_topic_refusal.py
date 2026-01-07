@@ -1,4 +1,3 @@
-# backend/app/tests/test_off_topic_refusal.py
 from backend.app.rag.pipeline import RAGPipeline
 from backend.app.core.paths import INDEX_DIR
 
@@ -6,7 +5,6 @@ def test_off_topic_question_is_refused_or_idk():
     pipe = RAGPipeline(INDEX_DIR)
     r = pipe.answer("What is the capital of France?")
     ans = (r["answer"] or "").lower()
-    # Either retrieval gate refuses OR model says it doesn't know
     if r.get("retrieval_gate", {}).get("ok") is False:
         assert True
     else:

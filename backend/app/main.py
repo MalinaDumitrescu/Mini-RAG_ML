@@ -5,15 +5,13 @@ from backend.app.core.logging_config import setup_logging
 from backend.app.core.paths import LOGS_DIR
 from backend.app.api import chat, health
 
-# Setup logging first
 setup_logging(LOGS_DIR / "app.log")
 
 app = FastAPI(title="ML_RAG API")
 
-# Add CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins (for dev). In prod, specify ["http://localhost:3000"]
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

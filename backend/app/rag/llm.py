@@ -25,7 +25,7 @@ class LLMConfig:
     # Generator model (fits 4GB VRAM well)
     model_name: str = "Qwen/Qwen2.5-0.5B-Instruct"
 
-    max_new_tokens: int = 256
+    max_new_tokens: int = 512
     temperature: float = 0.2
     device: str = "cuda"  # falls back to CPU if unavailable
 

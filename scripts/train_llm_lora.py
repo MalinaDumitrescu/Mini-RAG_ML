@@ -1,4 +1,3 @@
-# scripts/train_llm_lora.py
 from __future__ import annotations
 
 import json
@@ -19,11 +18,9 @@ from backend.app.core.logging_config import setup_logging
 
 @dataclass
 class TrainCfg:
-    # ✅ train the same model you use for inference
     base_model: str = "Qwen/Qwen2.5-0.5B-Instruct"
     out_dir: Path = MODELS_DIR / "llm_lora_qwen05b"
 
-    # ✅ conservative for 4GB VRAM
     max_samples: int = 500
     max_seq_len: int = 384
 
@@ -122,7 +119,6 @@ def main() -> None:
 
     model.to(device)
 
-    # LoRA config (Qwen attention projections)
     lora = LoraConfig(
         r=8,
         lora_alpha=16,

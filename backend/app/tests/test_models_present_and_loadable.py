@@ -1,4 +1,3 @@
-# backend/app/tests/test_models_present_and_loadable.py
 from pathlib import Path
 
 from backend.app.core.paths import FINETUNED_DIR, MODELS_DIR

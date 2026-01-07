@@ -1,4 +1,3 @@
-# backend/app/core/logging_config.py
 from __future__ import annotations
 
 import logging
@@ -15,7 +14,6 @@ def setup_logging(log_file: Path, level: int = logging.INFO) -> None:
     root = logging.getLogger()
     root.setLevel(level)
 
-    # 1) Console handler (only add if missing)
     has_stream = any(isinstance(h, logging.StreamHandler) for h in root.handlers)
     if not has_stream:
         ch = logging.StreamHandler()
@@ -23,7 +21,6 @@ def setup_logging(log_file: Path, level: int = logging.INFO) -> None:
         ch.setFormatter(formatter)
         root.addHandler(ch)
 
-    # 2) File handler (only add if missing for this exact file)
     log_path_str = str(log_file.resolve())
     has_this_file = False
     for h in root.handlers:

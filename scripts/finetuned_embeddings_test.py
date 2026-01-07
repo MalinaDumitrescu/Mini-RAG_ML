@@ -11,11 +11,9 @@ def main():
 
     base_model_name = "sentence-transformers/all-MiniLM-L6-v2"
     
-    # 1. Load Base Model
     logger.info(f"Loading base model: {base_model_name}")
     base_model = SentenceTransformer(base_model_name)
     
-    # 2. Load Fine-tuned Model
     if not FINETUNED_DIR.exists():
         logger.error(f"Fine-tuned model not found at {FINETUNED_DIR}. Run scripts/train_embeddings.py first.")
         return
@@ -23,7 +21,6 @@ def main():
     logger.info(f"Loading fine-tuned model from: {FINETUNED_DIR}")
     finetuned_model = SentenceTransformer(str(FINETUNED_DIR))
     
-    # 3. Compare Embeddings
     test_sentences = [
         "What is backpropagation?",
         "Machine learning models require training data.",

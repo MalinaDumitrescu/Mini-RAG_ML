@@ -1,4 +1,3 @@
-# backend/app/rag/retrieval.py
 from __future__ import annotations
 
 import json
@@ -19,8 +18,8 @@ logger = logging.getLogger("rag.retrieval")
 @dataclass
 class RetrievedChunk:
     chunk_id: str
-    score: float          # final score after reranking / selection
-    faiss_score: float    # raw FAISS score (cosine similarity if normalized IP)
+    score: float
+    faiss_score: float
     text: str
     metadata: Dict[str, Any]
 
@@ -45,19 +44,15 @@ class Retriever:
         "does", "do", "give", "tell", "define", "describe",
     }
 
-    # Pair question patterns (broad, grader-friendly)
     _PAIR_PATTERNS = [
-        # "X vs Y" or "X versus Y"
         re.compile(
             r"\b(?P<a>[a-z0-9][a-z0-9\-\s]{0,60}?)\s+(?:vs\.?|versus)\s+(?P<b>[a-z0-9][a-z0-9\-\s]{0,60}?)\b",
             re.IGNORECASE,
         ),
-        # "difference between X and Y"
         re.compile(
             r"\bdifference\s+between\s+(?P<a>[a-z0-9][a-z0-9\-\s]{0,60}?)\s+and\s+(?P<b>[a-z0-9][a-z0-9\-\s]{0,60}?)\b",
             re.IGNORECASE,
         ),
-        # "compare X and Y" / "compare X with Y"
         re.compile(
             r"\bcompare\s+(?P<a>[a-z0-9][a-z0-9\-\s]{0,60}?)\s+(?:and|with)\s+(?P<b>[a-z0-9][a-z0-9\-\s]{0,60}?)\b",
             re.IGNORECASE,
@@ -108,7 +103,6 @@ class Retriever:
                 continue
             terms.append(t)
 
-        # De-dup preserve order
         seen = set()
         uniq: List[str] = []
         for t in terms:
@@ -152,7 +146,6 @@ class Retriever:
             a = self._normalize_phrase(m.group("a"))
             b = self._normalize_phrase(m.group("b"))
 
-            # sanity filters
             if not a or not b:
                 continue
             if len(a) < 2 or len(b) < 2:
@@ -160,7 +153,6 @@ class Retriever:
             if a == b:
                 continue
 
-            # trim overly long phrases (keeps it stable)
             a = a[:60].strip()
             b = b[:60].strip()
 
@@ -228,7 +220,6 @@ class Retriever:
         if self.rerank_cfg.enabled and candidates:
             terms = self._extract_query_terms(question)
 
-            # Score each candidate: dense + alpha*lex (+ pair bonus if applicable)
             scored: List[Tuple[RetrievedChunk, Dict[str, bool]]] = []
             for c in candidates:
                 lex = self._lexical_score(c.text, terms)
@@ -250,7 +241,6 @@ class Retriever:
                 c.score = c.faiss_score + (self.rerank_cfg.alpha * lex) + bonus
                 scored.append((c, hits))
 
-            # Coverage-aware selection for pair questions
             results: List[RetrievedChunk] = []
             used_ids = set()
 
@@ -276,13 +266,11 @@ class Retriever:
                             results.append(best_b)
                             used_ids.add(best_b.chunk_id)
 
-                    # Fill remaining slots by score, excluding already used
                     remaining = [c for (c, _h) in scored if c.chunk_id not in used_ids]
                     remaining.sort(key=lambda x: x.score, reverse=True)
                     results.extend(remaining[: max(0, top_k - len(results))])
 
             else:
-                # Default rerank sort
                 all_sorted = [c for (c, _h) in scored]
                 all_sorted.sort(key=lambda x: x.score, reverse=True)
                 results = all_sorted[:top_k]

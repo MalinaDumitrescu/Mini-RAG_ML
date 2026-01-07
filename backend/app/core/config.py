@@ -1,4 +1,3 @@
-# Configuration settings
 class Settings:
     PROJECT_NAME = "ML_RAG"
 

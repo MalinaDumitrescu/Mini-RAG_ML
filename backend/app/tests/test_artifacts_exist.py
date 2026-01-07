@@ -19,7 +19,6 @@ def test_docstore_and_id_map_consistency():
     docstore = json.loads(docstore_path.read_text(encoding="utf-8"))
     id_map = json.loads(id_map_path.read_text(encoding="utf-8"))
 
-    # pick a few positions and ensure they map to chunk IDs that exist
     sample_keys = list(id_map.keys())[:10]
     assert sample_keys, "id_map.json empty"
 

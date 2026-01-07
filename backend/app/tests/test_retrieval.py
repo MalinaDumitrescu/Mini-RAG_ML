@@ -14,5 +14,4 @@ def test_faiss_scores_sorted_reasonably():
     q = "Explain cross validation."
     chunks = retriever.retrieve(q, top_k=5)
     faiss_scores = [c.faiss_score for c in chunks]
-    # Not guaranteed strictly sorted after rerank, but should be non-trivial
     assert max(faiss_scores) > 0.1
