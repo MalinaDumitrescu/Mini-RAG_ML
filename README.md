@@ -160,6 +160,9 @@ Features:
 * typing indicator
 * dark/light mode
 * backend connection via REST API
+* 
+<img width="1920" height="1080" alt="Screenshot (223)" src="https://github.com/user-attachments/assets/8b4c55b9-b5a9-46cb-bbb7-04389a63f654" />
+<img width="1920" height="1080" alt="Screenshot (222)" src="https://github.com/user-attachments/assets/4a11515d-5e12-4921-8693-7a5f90a768ae" />
 
 The frontend communicates with the backend through:
 
